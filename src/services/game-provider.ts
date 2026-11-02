@@ -9,6 +9,7 @@ export interface GameQueryParams {
   page?: number;
   pageSize?: number;
   dates?: string;
+  source?: 'all' | 'curated' | 'rawg';
 }
 
 export interface APIStatusInfo {
@@ -65,6 +66,7 @@ class GameProviderService {
     if (params.page) query.set('page', String(params.page));
     if (params.pageSize) query.set('page_size', String(params.pageSize));
     if (params.dates) query.set('dates', params.dates);
+    if (params.source && params.source !== 'all') query.set('source', params.source);
 
     const cacheKey = `games-${query.toString()}`;
     const cached = this.getCached<GameListResponse>(cacheKey);
@@ -156,7 +158,7 @@ class GameProviderService {
   async getGameBySlugOrId(slugOrId: string): Promise<Game | undefined> {
     // 1. Check local catalog immediately
     const local = gamesRepository.getBySlug(slugOrId) || gamesRepository.getById(slugOrId);
-    if (local) return local;
+    if (local) return { ...local, source: 'curated' };
 
     // 2. Query API proxy
     const cacheKey = `game-detail-${slugOrId}`;
@@ -180,7 +182,21 @@ class GameProviderService {
   }
 
   private getLocalFallback(params: GameQueryParams): GameListResponse {
-    let list = gamesRepository.getAll();
+    if (params.source === 'rawg') {
+      return {
+        games: [],
+        totalCount: 0,
+        page: params.page || 1,
+        pageSize: params.pageSize || 20,
+        totalPages: 1,
+        source: 'curated-fallback',
+        isLive: false,
+        statusMessage: 'External RAWG games require active API connection.',
+        lastSyncTime: new Date().toISOString(),
+      };
+    }
+
+    let list = gamesRepository.getAll().map((g) => ({ ...g, source: 'curated' as const }));
 
     if (params.search) {
       const q = params.search.toLowerCase().trim();
@@ -213,7 +229,7 @@ class GameProviderService {
       totalPages: Math.ceil(totalCount / pageSize) || 1,
       source: 'curated-fallback',
       isLive: false,
-      statusMessage: 'RAWG API key not configured. Showing enriched curated catalog.',
+      statusMessage: 'Serving Game Finder Curated catalog.',
       lastSyncTime: new Date().toISOString(),
     };
   }

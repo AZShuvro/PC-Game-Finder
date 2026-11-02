@@ -42,6 +42,11 @@ export const GameCard: React.FC<GameCardProps> = ({ game, compatibilityVerdict }
                   requirementsAvailable={game.requirementsAvailable}
                   size="sm"
                 />
+              ) : !game.requirementsAvailable ? (
+                <CompatibilityBadge
+                  requirementsAvailable={false}
+                  size="sm"
+                />
               ) : game.isLowEndFriendly ? (
                 <LowEndBadge size="sm" />
               ) : null}

@@ -42,7 +42,10 @@ export const LowEndSection: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {lowEndGames.map((game) => {
-            const verdict = specs ? checkCompatibility(specs, game).verdict : undefined;
+            const verdict =
+              specs && game.requirementsAvailable
+                ? checkCompatibility(specs, game).verdict
+                : undefined;
             return <GameCard key={game.id} game={game} compatibilityVerdict={verdict} />;
           })}
         </div>

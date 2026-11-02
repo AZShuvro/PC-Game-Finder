@@ -93,6 +93,7 @@ export const Browse: React.FC = () => {
               search: filters.searchQuery.trim() || undefined,
               genres: filters.genres.length > 0 ? filters.genres[0].toLowerCase() : undefined,
               ordering: orderingMap[filters.sortBy] || '-added',
+              source: catalogSourceFilter !== 'all' ? catalogSourceFilter : undefined,
               page,
               pageSize: 18,
             },
@@ -119,7 +120,7 @@ export const Browse: React.FC = () => {
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [filters.searchQuery, filters.genres, filters.sortBy, page]);
+  }, [filters.searchQuery, filters.genres, filters.sortBy, catalogSourceFilter, page]);
 
   // Client-side additional filtering (Compatibility, low-end, size, era, source)
   const filteredGames = useMemo(() => {
@@ -365,18 +366,25 @@ export const Browse: React.FC = () => {
               Catalog Source
             </label>
             <div className="grid grid-cols-3 gap-1 p-1 bg-[#080D18] rounded-lg border border-[#243247]">
-              {(['all', 'curated', 'rawg'] as const).map((src) => (
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'curated', label: 'Curated' },
+                { id: 'rawg', label: 'RAWG' },
+              ].map((tab) => (
                 <button
-                  key={src}
+                  key={tab.id}
                   type="button"
-                  onClick={() => setCatalogSourceFilter(src)}
-                  className={`py-1.5 text-xs font-medium rounded-md capitalize transition-all ${
-                    catalogSourceFilter === src
+                  onClick={() => {
+                    setCatalogSourceFilter(tab.id as 'all' | 'curated' | 'rawg');
+                    setPage(1);
+                  }}
+                  className={`py-1.5 text-xs font-medium rounded-md transition-all ${
+                    catalogSourceFilter === tab.id
                       ? 'bg-[#172438] text-white shadow-xs font-semibold'
                       : 'text-[#94A3B8] hover:text-white'
                   }`}
                 >
-                  {src}
+                  {tab.label}
                 </button>
               ))}
             </div>
@@ -538,8 +546,12 @@ export const Browse: React.FC = () => {
               )}
 
               {catalogSourceFilter !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-300">
-                  <span>Source: {catalogSourceFilter.toUpperCase()}</span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${
+                  catalogSourceFilter === 'curated'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+                }`}>
+                  <span>Source: {catalogSourceFilter === 'curated' ? 'Game Finder Curated' : 'RAWG'}</span>
                   <button
                     onClick={() => setCatalogSourceFilter('all')}
                     aria-label="Remove source filter"

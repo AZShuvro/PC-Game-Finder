@@ -18,6 +18,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showLowEndTips: true,
 };
 
+export const DEFAULT_PC_SPECS: PCSpecs = {
+  ramGB: 3,
+  cpu: 'Intel Pentium P6200',
+  gpu: 'Intel HD Graphics',
+  storageGB: 200,
+  operatingSystem: 'Windows 7',
+};
+
 function isClient(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
@@ -25,18 +33,25 @@ function isClient(): boolean {
 export const storageService = {
   // PC Specs
   getPCSpecs(): PCSpecs | null {
-    if (!isClient()) return null;
+    if (!isClient()) return DEFAULT_PC_SPECS;
     try {
       const data = localStorage.getItem(STORAGE_KEYS.PC_SPECS);
-      if (!data) return null;
+      if (data === '__cleared__') {
+        return null;
+      }
+      if (!data) {
+        // Initialize with default reference specification so compatibility checks work immediately
+        this.setPCSpecs(DEFAULT_PC_SPECS);
+        return DEFAULT_PC_SPECS;
+      }
       const parsed = JSON.parse(data) as PCSpecs;
       if (!parsed || typeof parsed.ramGB !== 'number' || !parsed.cpu || !parsed.gpu) {
-        return null;
+        return DEFAULT_PC_SPECS;
       }
       return parsed;
     } catch (e) {
       console.warn('Failed to parse saved PC specs from storage', e);
-      return null;
+      return DEFAULT_PC_SPECS;
     }
   },
 
@@ -53,7 +68,7 @@ export const storageService = {
   clearPCSpecs(): void {
     if (!isClient()) return;
     try {
-      localStorage.removeItem(STORAGE_KEYS.PC_SPECS);
+      localStorage.setItem(STORAGE_KEYS.PC_SPECS, '__cleared__');
       window.dispatchEvent(new Event('game-finder:pc-specs-updated'));
     } catch (e) {
       console.error('Failed to clear PC specs from localStorage', e);

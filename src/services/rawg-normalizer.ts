@@ -1,6 +1,7 @@
 import { Game, GameGenre, GameType, GameRequirements, SupportedOS, CoverStyle } from '../types/game';
 import { RAWGGame, RAWGPlatform } from '../types/external-game';
 import { evaluateCPU, evaluateGPU } from '../lib/hardware-tiers';
+import { GAME_CATALOG } from '../data/games/catalog';
 
 const GENRE_MAP: Record<string, GameGenre> = {
   action: 'Action',
@@ -17,52 +18,79 @@ const GENRE_MAP: Record<string, GameGenre> = {
   horror: 'Horror',
 };
 
-function parseRequirementsText(text?: string): Partial<GameRequirements> & { hasValidSpecs: boolean } {
-  if (!text || text.trim() === '') {
+function parseRequirementsText(rawText?: string): Partial<GameRequirements> & { hasValidSpecs: boolean } {
+  if (!rawText || rawText.trim() === '') {
     return { hasValidSpecs: false };
   }
 
+  // Clean HTML tags and entities
+  const text = rawText
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ');
+
   const result: Partial<GameRequirements> = {
-    rawText: text,
+    rawText,
   };
 
-  // RAM extraction
-  const ramGbMatch = text.match(/(?:ram|memory)[:\s]+(\d+(?:\.\d+)?)\s*GB/i);
-  const ramMbMatch = text.match(/(?:ram|memory)[:\s]+(\d+)\s*MB/i);
+  // RAM extraction (e.g. "8 GB RAM", "Memory: 8 GB", "4GB RAM", "512 MB RAM")
+  const ramGbMatch =
+    text.match(/(?:ram|memory)[:\s]+(\d+(?:\.\d+)?)\s*GB/i) ||
+    text.match(/(\d+(?:\.\d+)?)\s*GB\s*(?:ram|memory)?/i);
+  const ramMbMatch =
+    text.match(/(?:ram|memory)[:\s]+(\d+)\s*MB/i) ||
+    text.match(/(\d+)\s*MB\s*(?:ram|memory)?/i);
+
   if (ramGbMatch) {
     result.ramGB = parseFloat(ramGbMatch[1]);
   } else if (ramMbMatch) {
     result.ramGB = Math.max(1, Math.round(parseInt(ramMbMatch[1], 10) / 1024));
   }
 
-  // Storage extraction
-  const storageMatch = text.match(/(?:storage|hard drive|disk space|hdd|space)[:\s]+(\d+(?:\.\d+)?)\s*GB/i);
+  // Storage extraction (e.g. "Storage: 40 GB", "Hard Drive: 15 GB available space")
+  const storageMatch =
+    text.match(/(?:storage|hard drive|disk space|hdd|space)[:\s]+(\d+(?:\.\d+)?)\s*GB/i) ||
+    text.match(/(\d+(?:\.\d+)?)\s*GB\s*(?:available|free)?\s*(?:storage|space|disk|hdd|hard drive)/i);
+
   if (storageMatch) {
     result.storageGB = parseFloat(storageMatch[1]);
   }
 
-  // Processor extraction
-  const cpuMatch = text.match(/(?:processor|cpu)[:\s]+([^\n\r,]+)/i);
+  // Processor extraction (e.g. "Processor: Intel Core i5-2500K", "CPU: AMD Ryzen 5")
+  const cpuMatch =
+    text.match(/(?:^|[\n\r|;])\s*(?:processor|cpu)\s*:\s*([^|;\n\r<]+)/i) ||
+    text.match(/\b(?:processor|cpu)\s*:\s*([^|;\n\r<]+)/i);
   if (cpuMatch) {
-    result.cpu = cpuMatch[1].trim();
-    const evalCpu = evaluateCPU(result.cpu);
-    if (evalCpu.isKnown) {
-      result.minCpuTier = evalCpu.tier;
+    const rawCpu = cpuMatch[1].trim();
+    if (rawCpu.length > 2 && rawCpu.length < 120) {
+      result.cpu = rawCpu;
+      const evalCpu = evaluateCPU(result.cpu);
+      if (evalCpu.isKnown) {
+        result.minCpuTier = evalCpu.tier;
+      }
     }
   }
 
-  // GPU extraction
-  const gpuMatch = text.match(/(?:graphics|gpu|video card|video)[:\s]+([^\n\r,]+)/i);
+  // GPU extraction (e.g. "Graphics: NVIDIA GTX 660", "Video Card: DirectX 11 compatible")
+  const gpuMatch =
+    text.match(/(?:^|[\n\r|;])\s*(?:graphics|gpu|video card|video)\s*:\s*([^|;\n\r<]+)/i) ||
+    text.match(/\b(?:graphics|gpu|video card|video)\s*:\s*([^|;\n\r<]+)/i);
   if (gpuMatch) {
-    result.gpu = gpuMatch[1].trim();
-    const evalGpu = evaluateGPU(result.gpu);
-    if (evalGpu.isKnown) {
-      result.minGpuTier = evalGpu.tier;
+    const rawGpu = gpuMatch[1].trim();
+    if (rawGpu.length > 2 && rawGpu.length < 120) {
+      result.gpu = rawGpu;
+      const evalGpu = evaluateGPU(result.gpu);
+      if (evalGpu.isKnown) {
+        result.minGpuTier = evalGpu.tier;
+      }
     }
   }
 
-  // OS extraction
-  const osMatch = text.match(/(?:os|operating system)[:\s]+([^\n\r,]+)/i);
+  // OS extraction (e.g. "OS: Windows 10 64-bit", "Operating System: Windows 7")
+  const osMatch =
+    text.match(/(?:^|[\n\r|;])\s*(?:os|operating system)\s*:\s*([^|;\n\r<]+)/i) ||
+    text.match(/\b(?:os|operating system)\s*:\s*([^|;\n\r<]+)/i);
   if (osMatch) {
     result.operatingSystem = osMatch[1].trim();
   }
@@ -72,6 +100,23 @@ function parseRequirementsText(text?: string): Partial<GameRequirements> & { has
 }
 
 export function normalizeRAWGGame(raw: RAWGGame): Game {
+  // CRITICAL RULE: Check if this RAWG record matches an existing manually curated game.
+  // Curated games MUST never be overwritten by RAWG and must preserve source: 'curated'.
+  const matchingCurated = GAME_CATALOG.find((curated) => {
+    if (raw.id && curated.rawgId && curated.rawgId === raw.id) return true;
+    if (raw.slug && curated.slug.toLowerCase() === raw.slug.toLowerCase()) return true;
+    if (raw.name && curated.title.toLowerCase() === raw.name.toLowerCase()) return true;
+    return false;
+  });
+
+  if (matchingCurated) {
+    return {
+      ...matchingCurated,
+      source: 'curated',
+      requirementsAvailable: true,
+    };
+  }
+
   // 1. Find PC Platform (ID 4)
   const pcPlatform = raw.platforms?.find(
     (p: RAWGPlatform) => p.platform.id === 4 || p.platform.slug === 'pc'
@@ -111,26 +156,26 @@ export function normalizeRAWGGame(raw: RAWGGame): Game {
   const developer = raw.developers?.[0]?.name || 'Independent Studio';
   const publisher = raw.publishers?.[0]?.name || undefined;
 
-  // 6. Minimum requirements
+  // 6. Minimum requirements - Real data only, no fabricated specs
   const minimumRequirements: GameRequirements = {
-    ramGB: parsedMin.ramGB || 4,
-    cpu: parsedMin.cpu || (requirementsAvailable ? 'Dual-Core Processor' : 'Hardware requirements not cataloged'),
-    gpu: parsedMin.gpu || (requirementsAvailable ? 'DirectX 11 Graphics' : 'Hardware requirements not cataloged'),
-    storageGB: parsedMin.storageGB || 20,
+    ramGB: parsedMin.ramGB || (requirementsAvailable ? 4 : 0),
+    cpu: parsedMin.cpu || (requirementsAvailable ? 'Dual-Core Processor' : 'Requirements unavailable'),
+    gpu: parsedMin.gpu || (requirementsAvailable ? 'DirectX 11 Graphics' : 'Requirements unavailable'),
+    storageGB: parsedMin.storageGB || (requirementsAvailable ? 20 : 0),
     operatingSystem: parsedMin.operatingSystem || 'Windows 10',
-    minCpuTier: parsedMin.minCpuTier || 2,
-    minGpuTier: parsedMin.minGpuTier || 2,
+    minCpuTier: parsedMin.minCpuTier || (requirementsAvailable ? 2 : undefined),
+    minGpuTier: parsedMin.minGpuTier || (requirementsAvailable ? 2 : undefined),
     rawText: reqObj?.minimum,
   };
 
   const recommendedRequirements: GameRequirements = {
-    ramGB: parsedRec.ramGB || (minimumRequirements.ramGB * 2),
+    ramGB: parsedRec.ramGB || (requirementsAvailable ? minimumRequirements.ramGB * 2 : 0),
     cpu: parsedRec.cpu || minimumRequirements.cpu,
     gpu: parsedRec.gpu || minimumRequirements.gpu,
     storageGB: parsedRec.storageGB || minimumRequirements.storageGB,
     operatingSystem: parsedRec.operatingSystem || 'Windows 10 / 11',
-    recCpuTier: parsedRec.recCpuTier || ((minimumRequirements.minCpuTier || 2) + 1),
-    recGpuTier: parsedRec.recGpuTier || ((minimumRequirements.minGpuTier || 2) + 1),
+    recCpuTier: parsedRec.recCpuTier || (requirementsAvailable ? ((minimumRequirements.minCpuTier || 2) + 1) : undefined),
+    recGpuTier: parsedRec.recGpuTier || (requirementsAvailable ? ((minimumRequirements.minGpuTier || 2) + 1) : undefined),
     rawText: reqObj?.recommended,
   };
 
@@ -145,7 +190,11 @@ export function normalizeRAWGGame(raw: RAWGGame): Game {
   ];
   const coverStyle = coverStyles[raw.id % coverStyles.length];
 
-  const isLowEnd = requirementsAvailable && minimumRequirements.ramGB <= 4 && (minimumRequirements.minGpuTier || 1) <= 3;
+  const isLowEnd =
+    requirementsAvailable &&
+    minimumRequirements.ramGB > 0 &&
+    minimumRequirements.ramGB <= 4 &&
+    (minimumRequirements.minGpuTier || 1) <= 3;
 
   return {
     id: `rawg-${raw.id}`,

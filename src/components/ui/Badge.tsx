@@ -58,15 +58,19 @@ export const CompatibilityBadge: React.FC<CompatibilityBadgeProps> = ({
     );
   }
 
-  return (
-    <span
-      className={`inline-flex items-center rounded-md bg-rose-500/15 text-rose-400 border border-rose-500/30 tracking-tight whitespace-nowrap shrink-0 ${sizeClasses}`}
-      title="Does not meet minimum requirements"
-    >
-      {showIcon && <XCircle className={size === 'lg' ? 'w-4 h-4' : 'w-3.5 h-3.5'} />}
-      <span>NOT RECOMMENDED</span>
-    </span>
-  );
+  if (verdict === 'not-recommended') {
+    return (
+      <span
+        className={`inline-flex items-center rounded-md bg-rose-500/15 text-rose-400 border border-rose-500/30 tracking-tight whitespace-nowrap shrink-0 ${sizeClasses}`}
+        title="Does not meet minimum requirements"
+      >
+        {showIcon && <XCircle className={size === 'lg' ? 'w-4 h-4' : 'w-3.5 h-3.5'} />}
+        <span>NOT RECOMMENDED</span>
+      </span>
+    );
+  }
+
+  return null;
 };
 
 export const LowEndBadge: React.FC<{ size?: 'sm' | 'md' }> = ({ size = 'sm' }) => {
@@ -83,22 +87,22 @@ export const LowEndBadge: React.FC<{ size?: 'sm' | 'md' }> = ({ size = 'sm' }) =
   );
 };
 
-export const SourceBadge: React.FC<{ source: CatalogSource }> = ({ source }) => {
+export const SourceBadge: React.FC<{ source: CatalogSource | string }> = ({ source }) => {
   if (source === 'curated') {
     return (
       <span
-        className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+        className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap shrink-0"
         title="Curated and verified with accurate benchmark specifications"
       >
         <Sparkles className="w-3 h-3" />
-        <span>Curated</span>
+        <span>Game Finder Curated</span>
       </span>
     );
   }
 
   return (
     <span
-      className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
+      className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap shrink-0"
       title="Retrieved from RAWG Video Games Database"
     >
       <Database className="w-3 h-3" />

@@ -141,6 +141,14 @@ app.get('/api/games', async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt(String(req.query.page || '1'), 10));
   const pageSize = Math.min(40, Math.max(1, parseInt(String(req.query.page_size || '20'), 10)));
   const dates = typeof req.query.dates === 'string' ? req.query.dates : undefined;
+  const sourceFilter = typeof req.query.source === 'string' ? req.query.source : undefined;
+
+  // If curated-only requested, serve directly from curated catalog
+  if (sourceFilter === 'curated') {
+    const curatedResult = filterLocalCatalog(search, genre, page, pageSize);
+    res.json(curatedResult);
+    return;
+  }
 
   try {
     const rawgParams: Record<string, string | number> = {
@@ -153,15 +161,54 @@ app.get('/api/games', async (req: Request, res: Response) => {
     if (dates) rawgParams.dates = dates;
 
     const data: RAWGListResponse = await fetchFromRAWG('games', rawgParams);
-    const normalizedGames = (data.results || []).map(normalizeRAWGGame);
+    const normalizedRawg = (data.results || []).map(normalizeRAWGGame);
+
+    // Filter curated games that match search & genre
+    const localMatches = filterLocalCatalog(search, genre, 1, 50).games;
+
+    // Merge strategy:
+    // 1. Curated games matching criteria come first (or replace matching RAWG records)
+    // 2. RAWG games are appended without duplicating any curated game
+    const seenSlugs = new Set<string>();
+    const seenTitles = new Set<string>();
+    const mergedGames: Game[] = [];
+
+    // Add matching curated games on page 1, or preserve them
+    if (page === 1 && sourceFilter !== 'rawg') {
+      for (const cur of localMatches) {
+        if (!seenSlugs.has(cur.slug)) {
+          seenSlugs.add(cur.slug.toLowerCase());
+          seenTitles.add(cur.title.toLowerCase());
+          mergedGames.push({ ...cur, source: 'curated' });
+        }
+      }
+    }
+
+    // Add normalized RAWG games, deduplicating against curated
+    for (const g of normalizedRawg) {
+      if (sourceFilter === 'rawg' && g.source === 'curated') {
+        continue;
+      }
+      const sKey = g.slug.toLowerCase();
+      const tKey = g.title.toLowerCase();
+      if (!seenSlugs.has(sKey) && !seenTitles.has(tKey)) {
+        seenSlugs.add(sKey);
+        seenTitles.add(tKey);
+        mergedGames.push(g);
+      }
+    }
+
+    // Paginate merged games
+    const startIndex = (page - 1) * pageSize;
+    const paginatedGames = mergedGames.slice(startIndex, startIndex + pageSize);
 
     res.json({
-      games: normalizedGames,
-      totalCount: data.count || normalizedGames.length,
+      games: paginatedGames.length > 0 ? paginatedGames : normalizedRawg.slice(0, pageSize),
+      totalCount: Math.max(data.count || 0, mergedGames.length),
       page,
       pageSize,
-      totalPages: Math.ceil((data.count || normalizedGames.length) / pageSize),
-      source: 'rawg',
+      totalPages: Math.ceil(Math.max(data.count || 0, mergedGames.length) / pageSize),
+      source: 'merged',
       isLive: true,
       lastSyncTime: new Date().toISOString(),
     });
@@ -181,9 +228,18 @@ app.get('/api/games/trending', async (_req: Request, res: Response) => {
       ordering: '-rating',
     });
     const normalized = (data.results || []).map(normalizeRAWGGame);
+    // Deduplicate
+    const seen = new Set<string>();
+    const deduplicated: Game[] = [];
+    for (const g of normalized) {
+      if (!seen.has(g.slug.toLowerCase())) {
+        seen.add(g.slug.toLowerCase());
+        deduplicated.push(g);
+      }
+    }
     res.json({
-      games: normalized,
-      source: 'rawg',
+      games: deduplicated,
+      source: 'mixed',
       isLive: true,
     });
   } catch (err) {
@@ -210,9 +266,17 @@ app.get('/api/games/latest', async (_req: Request, res: Response) => {
       ordering: '-released',
     });
     const normalized = (data.results || []).map(normalizeRAWGGame);
+    const seen = new Set<string>();
+    const deduplicated: Game[] = [];
+    for (const g of normalized) {
+      if (!seen.has(g.slug.toLowerCase())) {
+        seen.add(g.slug.toLowerCase());
+        deduplicated.push(g);
+      }
+    }
     res.json({
-      games: normalized,
-      source: 'rawg',
+      games: deduplicated,
+      source: 'mixed',
       isLive: true,
     });
   } catch (err) {
@@ -262,11 +326,14 @@ app.get('/api/games/:slug', async (req: Request, res: Response) => {
 
   // 1. Check local catalog first (preserves GTA San Andreas regression test & curated requirements)
   const localGame = GAME_CATALOG.find(
-    (g) => g.slug.toLowerCase() === slug.toLowerCase() || g.id.toLowerCase() === slug.toLowerCase()
+    (g) =>
+      g.slug.toLowerCase() === slug.toLowerCase() ||
+      g.id.toLowerCase() === slug.toLowerCase() ||
+      (g.rawgId && String(g.rawgId) === slug.replace(/^rawg-/, ''))
   );
 
   if (localGame) {
-    res.json({ game: localGame, source: 'curated' });
+    res.json({ game: { ...localGame, source: 'curated' }, source: 'curated' });
     return;
   }
 
@@ -276,7 +343,7 @@ app.get('/api/games/:slug', async (req: Request, res: Response) => {
     const rawgLookup = slug.replace(/^rawg-/, '');
     const data: RAWGGame = await fetchFromRAWG(`games/${rawgLookup}`);
     const normalized = normalizeRAWGGame(data);
-    res.json({ game: normalized, source: 'rawg' });
+    res.json({ game: normalized, source: normalized.source });
   } catch (err) {
     res.status(404).json({ error: 'Game not found', slug });
   }
