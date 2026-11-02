@@ -1,0 +1,6 @@
+{
+  "name": "Game Finder",
+  "description": "PC gaming discovery and hardware compatibility platform. Check if your PC can run games, estimate FPS, and discover low-end friendly titles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

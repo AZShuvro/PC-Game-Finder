@@ -1,0 +1,1671 @@
+# PROJECT: GAME FINDER
+## Complete Gaming Compatibility & Discovery Platform
+## Full Application Development — From Scratch
+
+You are an expert full-stack product engineer, UI/UX designer, software architect, and frontend developer.
+
+Your task is to design and build a complete, polished, production-ready web application called:
+
+GAME FINDER
+
+This is not a landing-page-only project.
+This is not a static UI prototype.
+This is not a simple game catalog.
+
+Build a fully functional gaming discovery and PC compatibility platform.
+
+Every major interaction must work.
+Every page must be implemented.
+Every feature must use real application logic.
+Do not use fake buttons, placeholder interactions, or decorative-only controls.
+
+Build the complete application, not just its visual appearance.
+
+==================================================
+1. PRODUCT VISION
+==================================================
+
+Game Finder helps users discover PC games that their computers can run.
+
+Many users have low-end computers, older laptops, integrated graphics, limited RAM, and older processors.
+
+They often do not know:
+
+- Which games their PC can run.
+- Which games may run with limitations.
+- Which games are not recommended.
+- Whether their hardware meets minimum requirements.
+- Whether their hardware meets recommended requirements.
+- What performance they might expect.
+- Which games are suitable for their hardware.
+
+Game Finder solves these problems.
+
+Users should be able to:
+
+1. Enter their PC specifications.
+2. Save their PC profile locally.
+3. Browse a game catalog.
+4. Search and filter games.
+5. Check compatibility.
+6. Understand why a game can or cannot run.
+7. View detailed game information.
+8. Estimate possible FPS ranges.
+9. Save games to a personal wishlist.
+10. Discover games suitable for low-end hardware.
+
+The application should feel like a real, modern gaming platform.
+
+==================================================
+2. CORE PRODUCT PRINCIPLES
+==================================================
+
+Follow these principles throughout development:
+
+- Functionality over decorative complexity.
+- Accurate and transparent compatibility assessments.
+- Conservative hardware estimation.
+- No fake benchmark claims.
+- No fabricated user data.
+- No dead buttons.
+- No unnecessary dependencies.
+- Reusable components.
+- Strong TypeScript typing.
+- Clean architecture.
+- Responsive design.
+- Accessible interactions.
+- Future database migration readiness.
+
+The application must work without requiring users to create an account.
+
+Use browser localStorage for personal data in this initial version.
+
+Do not require Supabase, authentication, or a backend to make the core application work.
+
+Keep the architecture ready for future database/API integration.
+
+==================================================
+3. TECHNOLOGY STACK
+==================================================
+
+Use a modern Lovable-compatible stack.
+
+Preferred:
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui where appropriate
+- Lucide icons
+- React Router
+- Reusable React components
+
+Use stable compatible package versions.
+
+Avoid unnecessary dependencies.
+
+Use strict TypeScript practices.
+
+Organize the project cleanly.
+
+Suggested structure:
+
+src/
+  components/
+    layout/
+    home/
+    game/
+    browse/
+    compatibility/
+    pc/
+    saved/
+    ui/
+
+  pages/
+    Home.tsx
+    Browse.tsx
+    Check.tsx
+    Saved.tsx
+    Settings.tsx
+    GameDetails.tsx
+    NotFound.tsx
+
+  data/
+    games/
+    hardware/
+
+  hooks/
+    usePCSpecs.ts
+    useSavedGames.ts
+    useSettings.ts
+
+  lib/
+    games.ts
+    compatibility.ts
+    hardware-tiers.ts
+    fps-estimator.ts
+    browse-filters.ts
+    storage.ts
+    validation.ts
+
+  types/
+    game.ts
+    pc-specs.ts
+    compatibility.ts
+    fps.ts
+
+  App.tsx
+  main.tsx
+
+You may improve this structure when necessary, but maintain clear separation of concerns.
+
+==================================================
+4. BRAND IDENTITY AND DESIGN SYSTEM
+==================================================
+
+Product name:
+
+GAME FINDER
+
+Brand personality:
+
+- Modern
+- Technical
+- Minimal
+- Gaming-focused
+- Premium
+- Trustworthy
+- Friendly to low-end PC users
+
+Visual direction:
+
+Create a premium dark gaming interface.
+
+Primary background:
+Deep navy / near-black.
+
+Suggested colors:
+
+Background:
+#080D18
+
+Secondary background:
+#0E1625
+
+Card background:
+#111D2D
+
+Elevated background:
+#172438
+
+Primary accent:
+Emerald green #10B981
+
+Secondary accent:
+#34D399
+
+Main text:
+#F1F5F9
+
+Muted text:
+#94A3B8
+
+Borders:
+#243247
+
+Compatibility colors:
+
+CAN RUN:
+Green
+
+MAYBE:
+Amber
+
+NOT RECOMMENDED:
+Red
+
+The interface should look polished without being visually overwhelming.
+
+Use:
+
+- Consistent spacing.
+- Subtle borders.
+- Carefully controlled shadows.
+- Rounded cards.
+- Smooth transitions.
+- Clear typography hierarchy.
+- Beautiful empty states.
+- Consistent icon sizing.
+- Subtle hover effects.
+- Clear focus states.
+
+Avoid:
+
+- Excessive gradients.
+- Excessive glassmorphism.
+- Too many glowing effects.
+- Overly large headings everywhere.
+- Cluttered dashboards.
+- Excessive animations.
+- Random colors.
+
+Typography:
+
+Use a clean modern sans-serif font.
+
+The design must be responsive from mobile to desktop.
+
+==================================================
+5. GLOBAL LAYOUT
+==================================================
+
+Create a shared application layout.
+
+Navbar:
+
+- Game Finder logo/wordmark.
+- Home
+- Browse Games
+- Check My PC
+- Saved Games
+- Settings
+
+Include:
+
+- Active navigation state.
+- Responsive mobile navigation.
+- Accessible navigation.
+- Consistent spacing.
+
+The navbar should remain usable on all screen sizes.
+
+Footer:
+
+- Game Finder branding.
+- Short product description.
+- Browse Games link.
+- Check My PC link.
+- Saved Games link.
+- Disclaimer.
+- Copyright text.
+
+Do not add fake social links.
+
+==================================================
+6. HOME PAGE
+==================================================
+
+Route:
+
+/
+
+Create a premium landing page.
+
+Hero section:
+
+Headline:
+
+"Find Games Your PC Can Actually Run."
+
+Supporting text:
+
+"Discover PC games, check hardware compatibility, and find your next favorite game — even on a low-end PC."
+
+Primary CTA:
+
+"Check My PC"
+
+Link:
+/check
+
+Secondary CTA:
+
+"Explore Games"
+
+Link:
+/browse
+
+Include a visual PC compatibility preview.
+
+The preview should show an example game and a compatibility result.
+
+Make it clear that the preview is illustrative.
+
+Below the hero:
+
+SECTION A — HOW IT WORKS
+
+Three steps:
+
+1. Enter Your PC Specs
+2. Discover Compatible Games
+3. Find Your Next Game
+
+SECTION B — FEATURED GAMES
+
+Display selected games from the actual game catalog.
+
+Each card should show:
+
+- Game title
+- Cover/visual
+- Release year
+- Game type
+- Genre
+- Estimated size
+- Compatibility status when PC specs are available
+
+Cards must link to game detail pages.
+
+SECTION C — WHY GAME FINDER
+
+Highlight:
+
+- PC compatibility checking.
+- Low-end PC discovery.
+- Hardware requirement comparison.
+- FPS estimation.
+- Saved game collection.
+
+SECTION D — CALL TO ACTION
+
+Encourage users to check their PC.
+
+Use real routes and working links.
+
+Do not duplicate game data in the home page.
+
+Use the central catalog.
+
+==================================================
+7. GAME DATA MODEL
+==================================================
+
+Create a strongly typed Game model.
+
+Suggested structure:
+
+Game:
+- id
+- slug
+- title
+- description
+- shortDescription
+- genres
+- gameType
+- releaseYear
+- developer
+- publisher (optional)
+- estimatedSizeGB
+- supportedOperatingSystems
+- minimumRequirements
+- recommendedRequirements
+- tags
+- featured
+- coverStyle
+- hardwareNotes (optional)
+
+GameRequirements:
+- ramGB
+- cpu
+- gpu
+- storageGB
+- operatingSystem
+
+Use reusable TypeScript types.
+
+Create shared constants for:
+
+Game genres:
+- Action
+- Adventure
+- Racing
+- Strategy
+- Puzzle
+- Platformer
+- RPG
+- Simulation
+- Horror
+- Casual
+- Shooter
+- Indie
+
+Game types:
+- Singleplayer
+- Multiplayer
+- Co-op
+- Offline
+- Online
+
+Operating systems:
+- Windows XP
+- Windows Vista
+- Windows 7
+- Windows 8.1
+- Windows 10
+- Windows 11
+- Other
+
+Avoid duplicating vocabulary throughout the application.
+
+==================================================
+8. GAME CATALOG
+==================================================
+
+Start with a curated catalog of at least these 24 games:
+
+CLASSIC GAMES:
+
+1. Grand Theft Auto: San Andreas
+2. Grand Theft Auto: Vice City
+3. Half-Life 2
+4. DOOM
+5. Duke Nukem 3D
+6. StarCraft
+7. Age of Empires II
+8. Warcraft III
+9. Counter-Strike 1.6
+10. FlatOut
+11. TrackMania Nations
+
+INDIE GAMES:
+
+12. LIMBO
+13. Undertale
+14. Portal 2
+15. Terraria
+16. Super Meat Boy
+17. Braid
+18. Machinarium
+19. Fez
+20. Cave Story
+21. Celeste
+
+CASUAL / STRATEGY:
+
+22. Papers, Please
+23. Plants vs. Zombies
+
+Add one additional suitable low-end-friendly game to reach 24.
+
+Each catalog entry must have:
+
+- Unique ID.
+- Unique slug.
+- Accurate title.
+- Short description.
+- Full description.
+- Genre.
+- Game type.
+- Release year.
+- Developer.
+- Publisher when known.
+- Estimated installation size.
+- Supported operating systems.
+- Minimum requirements.
+- Recommended requirements.
+- Tags.
+- Cover style.
+
+IMPORTANT DATA ACCURACY RULES:
+
+Do not invent precise official system requirements.
+
+When official requirements are unavailable:
+
+- Use conservative curated estimates.
+- Clearly label them as community/curated estimates.
+- Avoid presenting them as verified official requirements.
+- Prefer known reliable information.
+- Include a data confidence field if useful.
+
+Do not confuse minimum and recommended requirements.
+
+Do not create fake games or duplicate entries.
+
+Create a centralized catalog repository.
+
+All pages must read game information from the same catalog.
+
+Architecture:
+
+Game Data
+   ↓
+Catalog Repository
+   ↓
+Compatibility Engine
+   ↓
+Browse / Details / Saved / FPS
+
+Make it easy to add more games later.
+
+==================================================
+9. BROWSE GAMES PAGE
+==================================================
+
+Route:
+
+/browse
+
+Create a complete game discovery interface.
+
+Page heading:
+
+"Explore Games"
+
+Supporting text:
+
+"Find games that match your hardware and preferences."
+
+Display:
+
+- Total game count.
+- Search field.
+- Filter controls.
+- Sorting controls.
+- Game grid.
+- Result count.
+- Empty states.
+
+SEARCH:
+
+Search across:
+
+- Game title.
+- Description.
+- Developer.
+- Publisher.
+- Genre.
+- Game type.
+- Tags.
+
+Requirements:
+
+- Case-insensitive.
+- Trim whitespace.
+- Support multiple search terms.
+- Every search term must match somewhere in the indexed game information.
+- Support title acronym searches where practical.
+
+Example:
+
+Searching "gta" should find:
+
+- Grand Theft Auto: San Andreas
+- Grand Theft Auto: Vice City
+
+FILTERS:
+
+Genre:
+- Action
+- Adventure
+- Racing
+- Strategy
+- Puzzle
+- Platformer
+- RPG
+- Simulation
+- Horror
+- Casual
+- Shooter
+- Indie
+
+Game type:
+- Singleplayer
+- Multiplayer
+- Co-op
+- Offline
+- Online
+
+Compatibility:
+- All
+- Can Run
+- Maybe
+- Not Recommended
+
+Additional filters:
+
+- Estimated game size.
+- Release year.
+- Tags.
+- Low-end friendly.
+
+Allow multiple compatible selections where appropriate.
+
+SORTING:
+
+- Recommended
+- Name A-Z
+- Name Z-A
+- Release Year Newest
+- Release Year Oldest
+- Size Smallest
+- Size Largest
+
+Recommended means curated catalog order, not an invented recommendation score.
+
+FILTER UX:
+
+- Show active filter count.
+- Show selected filter chips.
+- Allow individual filter removal.
+- Provide Reset All.
+- Update results immediately.
+- Preserve search when changing unrelated filters.
+
+If no PC specs are saved:
+
+- Disable the compatibility filter.
+- Explain why.
+- Link to /check.
+
+If no games match:
+
+Show a useful empty state.
+
+Include a Clear Filters action.
+
+All filters and sorting must actually work.
+
+==================================================
+10. GAME CARD
+==================================================
+
+Create one reusable GameCard component.
+
+Display:
+
+- Game visual/cover.
+- Game title.
+- Release year.
+- Genre.
+- Game type.
+- Estimated size.
+- Compatibility badge when available.
+- Save/bookmark button.
+
+Interactions:
+
+- Clicking the card opens its details page.
+- Save button saves/unsaves the game.
+- Save button must not trigger card navigation.
+- Proper keyboard accessibility.
+- Visible focus states.
+
+Compatibility badge:
+
+CAN RUN:
+Green.
+
+MAYBE:
+Amber.
+
+NOT RECOMMENDED:
+Red.
+
+Do not display a compatibility badge when PC specifications are unavailable.
+
+==================================================
+11. GAME DETAILS PAGE
+==================================================
+
+Dynamic route:
+
+/games/:slug
+
+Examples:
+
+/games/grand-theft-auto-san-andreas
+/games/portal-2
+/games/terraria
+
+Use the central catalog repository.
+
+Do not hardcode individual game pages.
+
+Invalid slug:
+
+Show a proper not-found page.
+
+GAME HERO:
+
+Show:
+
+- Game title.
+- Short description.
+- Cover/visual.
+- Game type.
+- Genres.
+- Release year.
+- Developer.
+- Publisher if available.
+- Estimated size.
+- Tags.
+- Save button.
+
+GAME INFORMATION:
+
+Show:
+
+- Release year.
+- Developer.
+- Publisher.
+- Genre.
+- Game type.
+- Supported OS.
+- Estimated size.
+- Tags.
+
+Do not show empty publisher fields.
+
+REQUIREMENTS COMPARISON:
+
+Create two clear cards:
+
+MINIMUM REQUIREMENTS
+
+RECOMMENDED REQUIREMENTS
+
+Each should display:
+
+- RAM.
+- CPU.
+- GPU.
+- Storage.
+- Operating system.
+
+Make it responsive.
+
+COMPATIBILITY SECTION:
+
+If PC specifications exist:
+
+Show:
+
+- Overall result.
+- RAM status.
+- CPU status.
+- GPU status.
+- Storage status.
+- OS status.
+- Explanation for each component.
+- Minimum vs recommended comparison.
+
+If PC specifications do not exist:
+
+Show:
+
+"Check this game against your PC"
+
+Button:
+"Enter PC Specifications"
+
+Route:
+/check
+
+BREADCRUMB:
+
+Home / Browse / Game Name
+
+Browse should link to /browse.
+
+Use dynamic page titles and descriptions when supported by the routing framework.
+
+==================================================
+12. PC SPECIFICATION CHECKER
+==================================================
+
+Route:
+
+/check
+
+This is a core feature.
+
+Create a polished PC specification form.
+
+Page heading:
+
+"Check Your PC"
+
+Supporting text:
+
+"Enter your computer specifications to discover which games you can run."
+
+FORM FIELDS:
+
+RAM:
+
+Dropdown:
+- 2 GB
+- 3 GB
+- 4 GB
+- 6 GB
+- 8 GB
+- 12 GB
+- 16 GB
+- 24 GB
+- 32 GB
+- 64 GB
+
+CPU:
+
+Text input.
+
+Example:
+Intel Pentium P6200
+
+GPU:
+
+Text input.
+
+Example:
+Intel HD Graphics
+
+Available Storage:
+
+Numeric input in GB.
+
+Operating System:
+
+Dropdown:
+- Windows XP
+- Windows Vista
+- Windows 7
+- Windows 8.1
+- Windows 10
+- Windows 11
+- Other
+
+VALIDATION:
+
+- Required fields.
+- RAM must be a valid positive supported value.
+- CPU must not be empty.
+- GPU must not be empty.
+- Storage must be a finite positive number.
+- Trim text inputs.
+- Show inline errors.
+- Clear errors when corrected.
+
+ACTIONS:
+
+- Save PC Specifications.
+- Edit Specifications.
+- Clear Specifications.
+
+Persist specifications in localStorage.
+
+Suggested key:
+
+game-finder:pc-specs
+
+Show a saved PC summary after submission.
+
+Do not lose the user's saved specifications on page refresh.
+
+==================================================
+13. COMPATIBILITY ENGINE
+==================================================
+
+Build a real, reusable compatibility engine.
+
+Do not implement compatibility logic directly inside React components.
+
+Create:
+
+checkCompatibility(pcSpecs, game)
+
+Return a typed result.
+
+Compatibility statuses:
+
+- can-run
+- maybe
+- not-recommended
+
+Component statuses:
+
+- pass
+- borderline
+- fail
+- unknown
+
+Evaluate:
+
+- RAM.
+- CPU.
+- GPU.
+- Storage.
+- Operating System.
+
+IMPORTANT: MINIMUM REQUIREMENT RULE.
+
+Meeting minimum requirements means CAN RUN.
+
+Being below recommended requirements must NOT automatically result in MAYBE.
+
+Example:
+
+Game RAM:
+Minimum: 2 GB
+Recommended: 4 GB
+
+User RAM:
+3 GB
+
+Result:
+
+RAM meets minimum requirements.
+
+Component status:
+PASS
+
+Recommended headroom:
+Below recommended.
+
+Overall status:
+Must not become MAYBE solely because RAM is below recommended.
+
+STORAGE:
+
+Available storage below minimum:
+FAIL.
+
+Available storage meets minimum:
+PASS.
+
+OPERATING SYSTEM:
+
+Compare supported OS versions logically.
+
+For example:
+
+Windows 11 may satisfy a Windows 10 requirement where compatibility is reasonable.
+
+Do not blindly compare OS names alphabetically.
+
+CPU/GPU:
+
+Use a curated hardware-tier database and transparent matching logic.
+
+If the hardware cannot be confidently identified:
+
+Return UNKNOWN.
+
+Do not automatically treat unknown hardware as a failure.
+
+OVERALL STATUS:
+
+If any critical minimum requirement fails:
+NOT RECOMMENDED.
+
+If no critical failure exists but important hardware information is unknown or uncertain:
+MAYBE.
+
+If all minimum requirements are satisfied:
+CAN RUN.
+
+Recommended requirements should be displayed separately and must not override the minimum verdict.
+
+Provide explanations for every component.
+
+Example:
+
+"Your 3 GB RAM meets the game's 2 GB minimum requirement, but it is below the recommended 4 GB."
+
+Include a disclaimer:
+
+"Compatibility results are estimates based on available hardware and game requirement data. Actual performance may vary."
+
+==================================================
+14. HARDWARE INTELLIGENCE
+==================================================
+
+Create a reusable CPU/GPU recognition layer.
+
+Support common hardware families.
+
+CPU examples:
+
+- Intel Pentium.
+- Intel Core i3.
+- Intel Core i5.
+- Intel Core i7.
+- AMD Athlon.
+- AMD Phenom.
+- AMD FX.
+- AMD Ryzen.
+
+GPU examples:
+
+- Intel integrated graphics.
+- Intel HD Graphics.
+- Intel UHD Graphics.
+- Intel Iris Graphics.
+- NVIDIA GeForce.
+- AMD Radeon.
+
+Recognize common aliases where practical.
+
+Examples:
+
+Intel HD 3000
+Intel HD Graphics 3000
+Intel(R) HD Graphics 3000
+
+These may refer to the same hardware.
+
+Do not assume every Intel HD Graphics model has identical performance.
+
+Use:
+
+- hardware aliases.
+- generation information where known.
+- curated performance tiers.
+- conservative fallbacks.
+
+If a device is unknown, explain that the system cannot confidently classify it.
+
+Do not claim exact hardware performance without evidence.
+
+Keep hardware recognition data separate from compatibility logic.
+
+==================================================
+15. FPS ESTIMATION
+==================================================
+
+Create an FPS estimation feature.
+
+This is an estimate, NOT a benchmark tool.
+
+Users should be able to view estimated performance for a game using their saved PC specifications.
+
+Allow configuration of:
+
+Resolution:
+- 720p
+- 900p
+- 1080p
+- 1440p
+
+Graphics preset:
+- Low
+- Medium
+- High
+
+Display estimated FPS as a range.
+
+Examples:
+
+30–45 FPS
+
+45–60 FPS
+
+60+ FPS
+
+Do not output fake precision such as:
+
+"57.83 FPS"
+
+ESTIMATION RULES:
+
+- Use conservative hardware tiers.
+- Consider minimum requirements.
+- Consider recommended requirements.
+- Consider CPU/GPU limitations.
+- Consider RAM.
+- Consider resolution.
+- Consider graphics preset.
+- Consider unknown hardware.
+- Avoid confident predictions where data is insufficient.
+
+If there is insufficient information:
+
+Show:
+
+"FPS estimate unavailable for this hardware configuration."
+
+If the system can provide only a broad estimate:
+
+Show a broad range and clearly label confidence as low.
+
+Do not claim that the estimate is guaranteed.
+
+Add a visible disclaimer:
+
+"FPS values are approximate estimates, not measured benchmarks. Real performance depends on drivers, temperatures, background applications, game settings, and hardware condition."
+
+The estimation engine must be separate from the compatibility engine.
+
+==================================================
+16. SAVED GAMES / WISHLIST
+==================================================
+
+Route:
+
+/saved
+
+Create a functional wishlist system.
+
+Use localStorage.
+
+Suggested key:
+
+game-finder:saved-games
+
+Store only game IDs or slugs.
+
+Do not store entire Game objects.
+
+FEATURES:
+
+- Save game.
+- Unsave game.
+- Check saved status.
+- Get all saved games.
+- Clear saved games if appropriate.
+- Display saved game count.
+
+The saved state must remain consistent across:
+
+- Home.
+- Browse.
+- Game Details.
+- Saved Games.
+
+SAVE BUTTON:
+
+Unsaved:
+"Save"
+
+Saved:
+"Saved"
+
+Use a bookmark icon.
+
+Update the interface immediately when clicked.
+
+Do not reload the page.
+
+SAVED PAGE:
+
+Show:
+
+- Page title.
+- Saved game count.
+- Saved game grid.
+- Compatibility badges when PC specs exist.
+- Remove/unsave action.
+
+If empty:
+
+"No saved games yet."
+
+Button:
+"Browse Games"
+
+Route:
+/browse
+
+If a saved ID no longer exists in the catalog, handle it safely.
+
+Avoid hydration mismatch.
+
+Use a hydration-safe localStorage pattern.
+
+==================================================
+17. SETTINGS PAGE
+==================================================
+
+Route:
+
+/settings
+
+Create a simple functional settings page.
+
+Include:
+
+- Saved PC specification summary.
+- Edit PC specifications link.
+- Clear PC specifications.
+- Clear saved games.
+- Reset local application data.
+
+Ask for confirmation before destructive actions.
+
+Do not add account settings because authentication is not implemented.
+
+Do not pretend settings sync across devices.
+
+Clearly explain that saved data is stored locally in the current browser.
+
+==================================================
+18. LOW-END PC DISCOVERY
+==================================================
+
+Make low-end PC discovery a first-class feature.
+
+Include a low-end-friendly filter.
+
+This should use curated metadata or transparent requirement-based rules.
+
+Do not simply label every old game as low-end friendly.
+
+The filter should consider:
+
+- Minimum RAM.
+- CPU tier.
+- GPU tier.
+- Storage requirement.
+
+If the classification is uncertain, do not falsely label the game.
+
+On the home page, include a section:
+
+"Great Games for Low-End PCs"
+
+Use actual catalog entries and the compatibility engine when PC specifications are available.
+
+==================================================
+19. STORAGE ARCHITECTURE
+==================================================
+
+Use a small reusable storage layer.
+
+Requirements:
+
+- Safe localStorage access.
+- JSON parsing protection.
+- Default values for missing keys.
+- Graceful handling of corrupted data.
+- No server-side localStorage access.
+- No hydration mismatch.
+- Reusable hooks.
+
+Storage keys:
+
+game-finder:pc-specs
+game-finder:saved-games
+game-finder:settings
+
+Do not scatter localStorage logic throughout components.
+
+Prepare a repository/service abstraction so local data can later be replaced with a database or API.
+
+==================================================
+20. DATA VALIDATION
+==================================================
+
+Create a catalog validator.
+
+Validate:
+
+- Unique game IDs.
+- Unique slugs.
+- Required titles.
+- Valid release years.
+- Valid RAM values.
+- Valid storage values.
+- Required minimum requirements.
+- Required recommended requirements.
+- Valid genres.
+- Valid game types.
+- Valid supported OS values.
+
+Return readable validation errors.
+
+Do not silently ignore invalid catalog data.
+
+==================================================
+21. ACCESSIBILITY
+==================================================
+
+Follow accessibility best practices.
+
+Include:
+
+- Semantic HTML.
+- Proper heading hierarchy.
+- Accessible forms.
+- Associated labels.
+- Keyboard navigation.
+- Visible focus indicators.
+- Accessible buttons.
+- Meaningful aria-labels.
+- Sufficient color contrast.
+- Accessible status indicators.
+
+Do not use color alone to communicate compatibility.
+
+==================================================
+22. RESPONSIVE DESIGN
+==================================================
+
+Support:
+
+- Desktop.
+- Laptop.
+- Tablet.
+- Mobile.
+
+Test:
+
+- Navigation.
+- Browse filters.
+- Game grid.
+- Game details.
+- PC form.
+- Requirements comparison.
+- Compatibility panel.
+- FPS estimation.
+- Saved games.
+
+On mobile:
+
+- Use a compact navigation pattern.
+- Stack requirements cards.
+- Avoid horizontal overflow.
+- Keep buttons touch-friendly.
+- Keep text readable.
+
+==================================================
+23. PERFORMANCE
+==================================================
+
+Keep the application lightweight.
+
+Requirements:
+
+- Avoid unnecessary re-renders.
+- Use memoization where useful.
+- Keep catalog data centralized.
+- Avoid expensive repeated searches.
+- Avoid unnecessary dependencies.
+- Lazy-load heavy content where appropriate.
+- Optimize component structure.
+- Do not add large animations or effects that hurt low-end devices.
+
+The application should remain responsive on modest hardware.
+
+==================================================
+24. ERROR AND EMPTY STATES
+==================================================
+
+Create polished states for:
+
+- No search results.
+- No matching filters.
+- No saved games.
+- No saved PC specifications.
+- Unknown hardware.
+- Unavailable FPS estimates.
+- Invalid game slug.
+- Corrupted localStorage.
+- Unexpected application errors.
+
+Never show raw technical exceptions to ordinary users.
+
+==================================================
+25. SEO
+==================================================
+
+Add appropriate page titles and descriptions.
+
+Home:
+Game Finder — Find Games Your PC Can Run
+
+Browse:
+Browse PC Games | Game Finder
+
+Check:
+Check Your PC Compatibility | Game Finder
+
+Saved:
+Saved Games | Game Finder
+
+Details:
+Dynamic game title + Game Finder.
+
+Use each game's short description for detail-page metadata where supported.
+
+==================================================
+26. TESTING AND QUALITY ASSURANCE
+==================================================
+
+Do not finish after creating the UI.
+
+Verify actual functionality.
+
+Test:
+
+HOME:
+- Navigation.
+- Featured games.
+- CTA buttons.
+
+BROWSE:
+- Search.
+- Multi-term search.
+- Genre filter.
+- Game type filter.
+- Compatibility filter.
+- Size filter.
+- Year filter.
+- Tags.
+- Low-end filter.
+- Sorting.
+- Reset.
+- Empty state.
+
+PC CHECKER:
+- Validation.
+- Save.
+- Edit.
+- Clear.
+- Persistence.
+- Reload behavior.
+
+COMPATIBILITY:
+- RAM.
+- CPU.
+- GPU.
+- Storage.
+- OS.
+- Unknown hardware.
+- Minimum vs recommended logic.
+- Overall verdict.
+- Explanation.
+
+GAME DETAILS:
+- Valid slug.
+- Invalid slug.
+- Correct data.
+- Requirements.
+- Compatibility.
+- Save button.
+
+SAVED:
+- Save.
+- Unsave.
+- Persistence.
+- Count.
+- Empty state.
+- Cross-page consistency.
+
+FPS:
+- Resolution changes.
+- Preset changes.
+- Hardware uncertainty.
+- Range output.
+- Disclaimer.
+
+SETTINGS:
+- Clear PC specs.
+- Clear saved games.
+- Reset data.
+- Confirmation behavior.
+
+Run the available type checks, lint checks, and build checks.
+
+Fix errors introduced during development.
+
+Do not disable TypeScript strictness or hide lint errors just to make the build pass.
+
+==================================================
+27. CRITICAL REGRESSION TEST
+==================================================
+
+Test this exact PC configuration:
+
+RAM:
+3 GB
+
+CPU:
+Intel Pentium P6200
+
+GPU:
+Intel HD Graphics
+
+Available Storage:
+200 GB
+
+Operating System:
+Windows 7
+
+Game:
+Grand Theft Auto: San Andreas
+
+Expected result:
+
+CAN RUN
+
+Reason:
+
+The PC meets the game's minimum requirements.
+
+The RAM is above the minimum 2 GB but below the recommended 4 GB.
+
+This MUST NOT cause MAYBE or NOT RECOMMENDED.
+
+The explanation should communicate that the RAM meets minimum requirements but has less recommended headroom.
+
+This is a critical acceptance test.
+
+==================================================
+28. FUTURE DATABASE READINESS
+==================================================
+
+This initial release must work without a backend.
+
+However, structure the application so future integration is straightforward.
+
+Future possibilities:
+
+- Supabase.
+- User authentication.
+- Cloud-saved games.
+- Cloud PC profiles.
+- Admin dashboard.
+- Large game catalog.
+- External game data providers.
+
+Do not implement these future features now.
+
+Use repository/service boundaries.
+
+Do not couple UI components directly to storage implementation.
+
+==================================================
+29. DEVELOPMENT EXECUTION RULES
+==================================================
+
+Build the application in a logical sequence.
+
+Suggested implementation order:
+
+1. Project foundation and design system.
+2. Shared types and catalog data.
+3. Storage utilities and hooks.
+4. Compatibility engine.
+5. Hardware recognition.
+6. Main layout and navigation.
+7. Home page.
+8. PC specification checker.
+9. Browse and filters.
+10. Game cards.
+11. Game detail pages.
+12. Saved games.
+13. FPS estimation.
+14. Settings.
+15. Responsive polish.
+16. Validation and testing.
+
+IMPORTANT:
+
+You have permission to create and modify all project files needed for this application.
+
+Do not stop after implementing the first page.
+
+Do not deliver only a visual prototype.
+
+Do not leave major functionality as TODO comments.
+
+Do not replace functional features with mock buttons.
+
+If a feature cannot be implemented reliably, explain the limitation and implement the safest honest fallback.
+
+Prioritize completing all core functionality over decorative details.
+
+==================================================
+30. FINAL ACCEPTANCE CRITERIA
+==================================================
+
+The project is complete only when:
+
+[ ] Home page works.
+[ ] Browse page works.
+[ ] Search works.
+[ ] All filters work.
+[ ] Sorting works.
+[ ] Game cards work.
+[ ] Game detail pages work.
+[ ] PC specification checker works.
+[ ] PC specifications persist.
+[ ] Compatibility engine works.
+[ ] Minimum requirement rule works.
+[ ] Hardware recognition works.
+[ ] FPS estimation works with honest uncertainty.
+[ ] Saved games work.
+[ ] Saved games persist.
+[ ] Settings work.
+[ ] Empty states work.
+[ ] Error states work.
+[ ] Mobile layout works.
+[ ] Navigation works.
+[ ] Catalog validation works.
+[ ] GTA San Andreas regression test passes.
+[ ] No major dead buttons.
+[ ] No critical TypeScript errors.
+[ ] No critical runtime errors.
+[ ] Production build succeeds.
+
+==================================================
+FINAL INSTRUCTION
+==================================================
+
+Build GAME FINDER as a complete, cohesive, polished web application.
+
+Think like a product engineer, not a template generator.
+
+Make sensible implementation decisions without repeatedly asking for approval.
+
+Do not sacrifice functionality for appearance.
+
+Do not invent benchmark data or claim unverified compatibility.
+
+Keep the application lightweight, modular, maintainable, and ready for future expansion.
+
+The final result should feel like a real gaming compatibility platform that users can actually use.
+
+Start building the complete application now.

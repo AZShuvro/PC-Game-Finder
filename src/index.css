@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-brand-bg: #080D18;
+  --color-brand-secondary: #0E1625;
+  --color-brand-card: #111D2D;
+  --color-brand-elevated: #172438;
+  --color-brand-border: #243247;
+  --color-brand-emerald: #10B981;
+  --color-brand-teal: #34D399;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #080D18;
+  color: #F1F5F9;
+}
