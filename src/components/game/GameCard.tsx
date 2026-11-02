@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bookmark, HardDrive } from 'lucide-react';
+import { Bookmark, HardDrive, Star } from 'lucide-react';
 import { Game } from '../../types/game';
 import { CompatibilityVerdict } from '../../types/compatibility';
-import { CompatibilityBadge, LowEndBadge } from '../ui/Badge';
+import { CompatibilityBadge, LowEndBadge, SourceBadge, MetacriticBadge } from '../ui/Badge';
 import { CoverImage } from './CoverImage';
 import { useSavedGames } from '../../hooks/useSavedGames';
 
@@ -23,24 +23,29 @@ export const GameCard: React.FC<GameCardProps> = ({ game, compatibilityVerdict }
   };
 
   return (
-    <div className="group relative flex flex-col bg-[#111D2D] hover:bg-[#172438] border border-[#243247] hover:border-[#10B981]/50 rounded-xl overflow-hidden transition-all duration-200 shadow-sm hover:shadow-lg focus-within:ring-2 focus-within:ring-[#10B981]">
+    <div className="group relative flex flex-col bg-[#111D2D] hover:bg-[#172438] border border-[#243247] hover:border-[#10B981]/50 rounded-xl overflow-hidden transition-all duration-200 shadow-sm hover:shadow-xl focus-within:ring-2 focus-within:ring-[#10B981]">
       <Link
         to={`/games/${game.slug}`}
         className="flex flex-col flex-1 focus:outline-hidden"
         aria-label={`View details for ${game.title}`}
       >
-        {/* Cover visual */}
-        <div className="relative">
+        {/* Cover visual with real artwork */}
+        <div className="relative overflow-hidden">
           <CoverImage game={game} aspect="card" />
 
           {/* Top badges overlay */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
-            <div>
+            <div className="flex items-center gap-1.5 flex-wrap">
               {compatibilityVerdict ? (
-                <CompatibilityBadge verdict={compatibilityVerdict} size="sm" />
+                <CompatibilityBadge
+                  verdict={compatibilityVerdict}
+                  requirementsAvailable={game.requirementsAvailable}
+                  size="sm"
+                />
               ) : game.isLowEndFriendly ? (
                 <LowEndBadge size="sm" />
               ) : null}
+              <SourceBadge source={game.source} />
             </div>
 
             {/* Bookmark Button */}
@@ -64,12 +69,20 @@ export const GameCard: React.FC<GameCardProps> = ({ game, compatibilityVerdict }
         <div className="flex flex-col flex-1 p-4 justify-between">
           <div>
             {/* Metadata row */}
-            <div className="flex items-center gap-1.5 text-xs text-[#94A3B8] mb-1.5 flex-wrap">
-              <span>{game.releaseYear}</span>
-              <span aria-hidden="true">·</span>
-              <span>{game.genres.slice(0, 2).join(', ')}</span>
-              <span aria-hidden="true">·</span>
-              <span>{game.gameType[0]}</span>
+            <div className="flex items-center justify-between gap-1.5 text-xs text-[#94A3B8] mb-1.5">
+              <div className="flex items-center gap-1.5 truncate">
+                <span>{game.releaseYear}</span>
+                <span aria-hidden="true">·</span>
+                <span className="truncate">{game.genres.slice(0, 2).join(', ')}</span>
+              </div>
+              {game.metacritic ? (
+                <MetacriticBadge score={game.metacritic} />
+              ) : game.rating ? (
+                <span className="flex items-center gap-1 font-mono text-[11px] text-amber-400 shrink-0">
+                  <Star className="w-3 h-3 fill-current" />
+                  <span>{game.rating.toFixed(1)}</span>
+                </span>
+              ) : null}
             </div>
 
             {/* Title */}
@@ -95,6 +108,22 @@ export const GameCard: React.FC<GameCardProps> = ({ game, compatibilityVerdict }
           </div>
         </div>
       </Link>
+    </div>
+  );
+};
+
+export const GameCardSkeleton: React.FC = () => {
+  return (
+    <div className="bg-[#111D2D] border border-[#243247] rounded-xl overflow-hidden animate-pulse flex flex-col h-[340px]">
+      <div className="h-48 bg-[#172438]" />
+      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+        <div className="space-y-2">
+          <div className="h-3 w-1/3 bg-[#172438] rounded" />
+          <div className="h-4 w-3/4 bg-[#172438] rounded" />
+          <div className="h-3 w-full bg-[#172438] rounded" />
+        </div>
+        <div className="h-4 w-1/2 bg-[#172438] rounded" />
+      </div>
     </div>
   );
 };

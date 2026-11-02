@@ -67,7 +67,23 @@ export const Settings: React.FC = () => {
           <span>Local Storage Architecture</span>
         </h3>
         <p className="text-xs text-[#94A3B8] leading-relaxed">
-          Game Finder is completely client-side and requires no user registration or remote database. All your hardware profiles, bookmarks, and preferences are stored exclusively in your browser&apos;s <code className="text-slate-200 font-mono">localStorage</code>. Data does not sync across different browsers or devices.
+          Game Finder stores your hardware profile, bookmarks, and preferences exclusively in your browser&apos;s <code className="text-slate-200 font-mono">localStorage</code>. Data stays on your device without requiring third-party logins.
+        </p>
+      </div>
+
+      {/* Database Provider & Sync Status */}
+      <div className="p-5 rounded-xl bg-[#111D2D] border border-[#243247] space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-[#243247]">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-pulse" />
+            <span>Catalog Database &amp; External Integration</span>
+          </h3>
+          <span className="text-[11px] font-mono text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20">
+            RAWG Video Games Database
+          </span>
+        </div>
+        <p className="text-xs text-[#94A3B8] leading-relaxed">
+          The catalog is dynamically enriched via server-side proxy routes to RAWG with 15-minute response caching. To connect full live search and automated new release discovery, define <code className="text-emerald-400 font-mono">RAWG_API_KEY</code> in your environment. When unset, Game Finder seamlessly serves the local 26-title benchmark catalog with real artwork.
         </p>
       </div>
 

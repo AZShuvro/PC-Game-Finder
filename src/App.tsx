@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { Browse } from './pages/Browse';
+import { LatestReleases } from './pages/LatestReleases';
 import { Check } from './pages/Check';
 import { Saved } from './pages/Saved';
 import { Settings } from './pages/Settings';
@@ -25,6 +26,7 @@ export function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/browse" element={<Browse />} />
+          <Route path="/latest" element={<LatestReleases />} />
           <Route path="/check" element={<Check />} />
           <Route path="/saved" element={<Saved />} />
           <Route path="/settings" element={<Settings />} />

@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { HeroSection } from '../components/home/HeroSection';
+import { TrendingGamesSection } from '../components/home/TrendingGamesSection';
+import { LatestReleasesPreviewSection } from '../components/home/LatestReleasesPreviewSection';
 import { HowItWorksSection } from '../components/home/HowItWorksSection';
 import { FeaturedGamesSection } from '../components/home/FeaturedGamesSection';
 import { LowEndSection } from '../components/home/LowEndSection';
@@ -14,6 +16,8 @@ export const Home: React.FC = () => {
   return (
     <div className="flex flex-col">
       <HeroSection />
+      <TrendingGamesSection />
+      <LatestReleasesPreviewSection />
       <HowItWorksSection />
       <FeaturedGamesSection />
       <LowEndSection />

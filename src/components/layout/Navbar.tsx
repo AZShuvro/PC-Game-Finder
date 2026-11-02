@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Cpu, Menu, X, Bookmark, MonitorCheck, Gamepad2, Settings } from 'lucide-react';
+import { Cpu, Menu, X, Bookmark, MonitorCheck, Sparkles } from 'lucide-react';
 import { useSavedGames } from '../../hooks/useSavedGames';
 import { usePCSpecs } from '../../hooks/usePCSpecs';
 
@@ -13,6 +13,7 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { label: 'Home', path: '/' },
     { label: 'Browse Games', path: '/browse' },
+    { label: 'Latest Releases', path: '/latest' },
     { label: 'Check My PC', path: '/check' },
     { label: 'Saved Games', path: '/saved', badge: savedCount },
     { label: 'Settings', path: '/settings' },
@@ -24,8 +25,8 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[#243247] bg-[#080D18]/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
+    <header className="sticky top-0 z-40 w-full border-b border-[#243247] bg-[#080D18]/95 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
         {/* Zone 1: Single text element wordmark */}
         <Link
           to="/"
@@ -38,8 +39,8 @@ export const Navbar: React.FC = () => {
           <span className="font-extrabold tracking-wider font-mono">GAME FINDER</span>
         </Link>
 
-        {/* Zone 2: 4–5 single-line clean text navigation links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        {/* Zone 2: Navigation Links */}
+        <nav className="hidden lg:flex items-center gap-6 text-sm font-medium">
           {navLinks.map((link) => {
             const active = isActive(link.path);
             return (
@@ -47,9 +48,7 @@ export const Navbar: React.FC = () => {
                 key={link.path}
                 to={link.path}
                 className={`relative py-1 whitespace-nowrap shrink-0 transition-colors ${
-                  active
-                    ? 'text-[#10B981] font-semibold'
-                    : 'text-[#94A3B8] hover:text-[#F1F5F9]'
+                  active ? 'text-[#10B981] font-semibold' : 'text-[#94A3B8] hover:text-[#F1F5F9]'
                 }`}
               >
                 <span className="flex items-center gap-1.5">
@@ -61,7 +60,7 @@ export const Navbar: React.FC = () => {
                   )}
                 </span>
                 {active && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#10B981] rounded-full" />
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#10B981] rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                 )}
               </Link>
             );
@@ -69,7 +68,7 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* Zone 3: 1 primary action */}
-        <div className="hidden md:flex items-center gap-3 shrink-0">
+        <div className="hidden sm:flex items-center gap-3 shrink-0">
           {isConfigured ? (
             <Link
               to="/check"
@@ -77,7 +76,9 @@ export const Navbar: React.FC = () => {
               title={`Saved Specs: ${specs?.ramGB}GB RAM, ${specs?.cpu}`}
             >
               <MonitorCheck className="w-3.5 h-3.5 text-[#10B981]" />
-              <span className="truncate max-w-[130px]">{specs?.ramGB}GB · {specs?.cpu.split(' ')[0]}</span>
+              <span className="truncate max-w-[120px]">
+                {specs?.ramGB}GB · {specs?.cpu.split(' ')[0]}
+              </span>
             </Link>
           ) : (
             <Link
@@ -91,13 +92,9 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Mobile menu button */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-2">
           {savedCount > 0 && (
-            <Link
-              to="/saved"
-              aria-label="Wishlist"
-              className="p-2 text-[#94A3B8] hover:text-white"
-            >
+            <Link to="/saved" aria-label="Wishlist" className="p-2 text-[#94A3B8] hover:text-white">
               <Bookmark className="w-5 h-5" />
             </Link>
           )}
@@ -115,7 +112,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#243247] bg-[#0E1625] px-4 pt-3 pb-6 space-y-2">
+        <div className="lg:hidden border-t border-[#243247] bg-[#0E1625] px-4 pt-3 pb-6 space-y-2">
           {navLinks.map((link) => {
             const active = isActive(link.path);
             return (

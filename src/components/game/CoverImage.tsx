@@ -1,21 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Game } from '../../types/game';
 import { Gamepad2, Shield, Crosshair, Zap, Compass, Sparkles, Terminal } from 'lucide-react';
 
 interface CoverImageProps {
   game: Game;
-  aspect?: 'card' | 'hero' | 'thumb';
+  aspect?: 'card' | 'hero' | 'thumb' | 'wide';
   className?: string;
+  priority?: boolean;
 }
 
-export const CoverImage: React.FC<CoverImageProps> = ({ game, aspect = 'card', className = '' }) => {
+export const CoverImage: React.FC<CoverImageProps> = ({
+  game,
+  aspect = 'card',
+  className = '',
+  priority = false,
+}) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   const heightClasses = {
     card: 'h-48 sm:h-52',
     hero: 'h-64 sm:h-80 md:h-96',
     thumb: 'h-24 w-24 shrink-0',
+    wide: 'h-40 sm:h-44',
   }[aspect];
 
-  // Distinctive palettes based on coverStyle
+  // Pick artwork URL: prefer coverImage, fallback to backgroundImage
+  const artworkUrl = !imageError ? game.coverImage || game.backgroundImage : undefined;
+
+  // Distinctive palettes based on coverStyle for procedural fallback
   const themeStyles = {
     'action-amber': {
       bg: 'from-amber-950/80 via-[#111D2D] to-[#080D18]',
@@ -79,50 +92,76 @@ export const CoverImage: React.FC<CoverImageProps> = ({ game, aspect = 'card', c
 
   return (
     <div
-      className={`relative w-full overflow-hidden bg-gradient-to-br ${themeStyles.bg} border-b ${themeStyles.border} flex flex-col justify-between p-4 select-none ${heightClasses} ${className}`}
+      className={`relative w-full overflow-hidden bg-[#0E1625] border-b border-[#243247]/60 select-none ${heightClasses} ${className}`}
     >
-      {/* Decorative subtle background pattern */}
-      <div
-        className="absolute inset-0 opacity-15 pointer-events-none"
-        style={{
-          backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)`,
-          backgroundSize: '24px 24px',
-        }}
-      />
+      {/* 1. Real Artwork Display */}
+      {artworkUrl && !imageError ? (
+        <>
+          {/* Skeleton Placeholder while loading */}
+          {!imageLoaded && (
+            <div className="absolute inset-0 bg-[#111D2D] animate-pulse flex items-center justify-center">
+              <Icon className="w-8 h-8 text-[#243247]" />
+            </div>
+          )}
 
-      {/* Ambient background glow circle */}
-      <div
-        className={`absolute -right-8 -bottom-8 w-40 h-40 rounded-full blur-2xl pointer-events-none ${themeStyles.glow}`}
-      />
+          <img
+            src={artworkUrl}
+            alt={game.title}
+            loading={priority ? 'eager' : 'lazy'}
+            referrerPolicy="no-referrer"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+            className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
 
-      {/* Top row */}
-      <div className="relative z-10 flex items-center justify-between text-xs">
-        <span className="font-mono text-xs tracking-wider text-[#94A3B8] uppercase">
-          {game.releaseYear}
-        </span>
-        <span className={`font-mono text-[11px] font-semibold px-2 py-0.5 rounded bg-[#080D18]/70 border border-white/5 ${themeStyles.accent}`}>
-          {game.genres[0]}
-        </span>
-      </div>
+          {/* Measured Scrim for contrast overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#111D2D] via-black/20 to-transparent pointer-events-none" />
+        </>
+      ) : (
+        /* 2. Designed Fallback Cover (Zero Broken Image Guarantee) */
+        <div
+          className={`w-full h-full bg-gradient-to-br ${themeStyles.bg} flex flex-col justify-between p-4`}
+        >
+          {/* Decorative pattern */}
+          <div
+            className="absolute inset-0 opacity-15 pointer-events-none"
+            style={{
+              backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+              backgroundSize: '24px 24px',
+            }}
+          />
 
-      {/* Center icon watermark & Title */}
-      <div className="relative z-10 my-auto text-center flex flex-col items-center justify-center">
-        <div className={`p-3 rounded-xl bg-[#080D18]/50 border border-white/10 mb-2 ${themeStyles.accent}`}>
-          <Icon className={aspect === 'hero' ? 'w-10 h-10' : 'w-7 h-7'} />
+          <div className="relative z-10 flex items-center justify-between text-xs">
+            <span className="font-mono text-xs text-[#94A3B8]">{game.releaseYear}</span>
+            <span
+              className={`font-mono text-[11px] font-semibold px-2 py-0.5 rounded bg-[#080D18]/70 border border-white/5 ${themeStyles.accent}`}
+            >
+              {game.genres[0]}
+            </span>
+          </div>
+
+          <div className="relative z-10 my-auto text-center flex flex-col items-center justify-center">
+            <div className={`p-3 rounded-xl bg-[#080D18]/50 border border-white/10 mb-2 ${themeStyles.accent}`}>
+              <Icon className={aspect === 'hero' ? 'w-10 h-10' : 'w-7 h-7'} />
+            </div>
+            <h4
+              className={`font-bold tracking-tight text-white line-clamp-2 ${
+                aspect === 'hero' ? 'text-2xl md:text-3xl max-w-xl' : 'text-base sm:text-lg'
+              }`}
+            >
+              {game.title}
+            </h4>
+            <span className="text-xs text-[#94A3B8] mt-1 font-medium">{game.developer}</span>
+          </div>
+
+          <div className="relative z-10 flex items-center justify-between text-[11px] text-[#94A3B8] border-t border-white/5 pt-2">
+            <span>{game.gameType[0]}</span>
+            <span className="font-mono tabular-nums">{game.estimatedSizeGB} GB</span>
+          </div>
         </div>
-        <h4 className={`font-bold tracking-tight text-white line-clamp-2 ${aspect === 'hero' ? 'text-2xl md:text-3xl max-w-xl' : 'text-base sm:text-lg'}`}>
-          {game.title}
-        </h4>
-        <span className="text-xs text-[#94A3B8] mt-1 font-medium">
-          {game.developer}
-        </span>
-      </div>
-
-      {/* Bottom metadata strip */}
-      <div className="relative z-10 flex items-center justify-between text-[11px] text-[#94A3B8] border-t border-white/5 pt-2">
-        <span>{game.gameType[0]}</span>
-        <span className="font-mono tabular-nums">{game.estimatedSizeGB} GB</span>
-      </div>
+      )}
     </div>
   );
 };

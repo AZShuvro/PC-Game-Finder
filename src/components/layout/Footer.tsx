@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Cpu, ShieldCheck } from 'lucide-react';
+import { Cpu, ShieldCheck, Database, ExternalLink } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
@@ -19,8 +19,24 @@ export const Footer: React.FC = () => {
               <span>GAME FINDER</span>
             </Link>
             <p className="text-sm text-[#94A3B8] max-w-md leading-relaxed">
-              Transparent gaming compatibility and hardware discovery. Find PC games that your computer can actually run, even on vintage laptops and integrated graphics.
+              Transparent gaming compatibility and dynamic hardware discovery. Find PC games that your computer can actually run, from retro classics to modern releases.
             </p>
+            {/* RAWG Attribution */}
+            <div className="pt-2 flex items-center gap-2 text-xs text-[#94A3B8]">
+              <Database className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span>
+                Game metadata &amp; artwork powered by{' '}
+                <a
+                  href="https://rawg.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sky-400 hover:text-sky-300 underline inline-flex items-center gap-1 font-medium"
+                >
+                  RAWG Video Games Database
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </span>
+            </div>
           </div>
 
           {/* Quick Links */}
@@ -32,6 +48,11 @@ export const Footer: React.FC = () => {
               <li>
                 <Link to="/browse" className="hover:text-white transition-colors">
                   Browse Catalog
+                </Link>
+              </li>
+              <li>
+                <Link to="/latest" className="hover:text-white transition-colors">
+                  Latest Releases
                 </Link>
               </li>
               <li>
@@ -68,7 +89,7 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
             <p>
-              Compatibility assessments and FPS estimates are calculated from curated requirement benchmarks. Actual performance may vary with drivers, thermal conditions, and background tasks.
+              Compatibility assessments and FPS estimates are calculated from curated and provider requirement benchmarks. Actual performance may vary with drivers, thermal conditions, and background tasks.
             </p>
           </div>
           <span className="whitespace-nowrap font-mono">

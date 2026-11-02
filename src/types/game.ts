@@ -10,7 +10,11 @@ export type GameGenre =
   | 'Horror'
   | 'Casual'
   | 'Shooter'
-  | 'Indie';
+  | 'Indie'
+  | 'Sports'
+  | 'Fighting'
+  | 'Arcade'
+  | 'Massively Multiplayer';
 
 export type GameType =
   | 'Singleplayer'
@@ -39,6 +43,7 @@ export interface GameRequirements {
   minGpuTier?: number;
   recCpuTier?: number;
   recGpuTier?: number;
+  rawText?: string;
 }
 
 export type CoverStyle =
@@ -51,6 +56,8 @@ export type CoverStyle =
   | 'minimal-slate'
   | 'golden-bronze';
 
+export type CatalogSource = 'curated' | 'rawg';
+
 export interface Game {
   id: string;
   slug: string;
@@ -61,6 +68,7 @@ export interface Game {
   genres: GameGenre[];
   gameType: GameType[];
   releaseYear: number;
+  releasedDate?: string; // e.g. "2004-10-26"
   developer: string;
   publisher?: string;
   estimatedSizeGB: number;
@@ -72,5 +80,17 @@ export interface Game {
   isLowEndFriendly: boolean;
   coverStyle: CoverStyle;
   hardwareNotes?: string;
-  dataConfidence?: 'verified-official' | 'curated-estimate';
+  dataConfidence?: 'verified-official' | 'curated-estimate' | 'external-unverified';
+
+  // Dynamic / Artwork additions
+  coverImage?: string; // Primary card thumbnail
+  backgroundImage?: string; // Detail hero / widescreen backdrop
+  screenshots?: string[]; // Extra screenshot gallery
+  rating?: number; // e.g. 4.7
+  ratingsCount?: number;
+  metacritic?: number; // Metacritic score e.g. 93
+  isUpcoming?: boolean;
+  source: CatalogSource;
+  rawgId?: number;
+  requirementsAvailable: boolean; // Flag indicating if real PC requirements were found
 }

@@ -1,15 +1,30 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Filter, X, RotateCcw, AlertCircle, ArrowUpDown, Sparkles, CheckCircle2, AlertTriangle, XCircle, ChevronDown, Check } from 'lucide-react';
-import { gamesRepository } from '../lib/games';
-import { GameCard } from '../components/game/GameCard';
-import { usePCSpecs } from '../hooks/usePCSpecs';
-import { GameGenre, GameType } from '../types/game';
+import {
+  Search,
+  Filter,
+  X,
+  RotateCcw,
+  AlertCircle,
+  ArrowUpDown,
+  Sparkles,
+  ChevronDown,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+} from 'lucide-react';
+import { Game } from '../types/game';
 import { CompatibilityVerdict } from '../types/compatibility';
+import { GameCard, GameCardSkeleton } from '../components/game/GameCard';
+import { usePCSpecs } from '../hooks/usePCSpecs';
+import { checkCompatibility } from '../lib/compatibility';
+import { gamesRepository } from '../lib/games';
+import { gameProvider } from '../services/game-provider';
+import { GameGenre, GameType } from '../types/game';
 import {
   FilterState,
   INITIAL_FILTERS,
-  filterAndSortGames,
   SizeFilterOption,
   YearFilterOption,
   SortOption,
@@ -19,7 +34,6 @@ export const Browse: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { specs, isConfigured } = usePCSpecs();
 
-  // Read initial query params if present
   const initialLowEnd = searchParams.get('lowEnd') === 'true';
   const initialQuery = searchParams.get('q') || '';
   const initialGenre = searchParams.get('genre') as GameGenre | null;
@@ -31,23 +45,132 @@ export const Browse: React.FC = () => {
     genres: initialGenre ? [initialGenre] : [],
   }));
 
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [catalogSourceFilter, setCatalogSourceFilter] = useState<'all' | 'curated' | 'rawg'>('all');
+  const [games, setGames] = useState<Game[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isLiveApi, setIsLiveApi] = useState<boolean>(false);
+  const [apiStatusMessage, setApiStatusMessage] = useState<string | undefined>();
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState<boolean>(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     document.title = 'Browse PC Games | Game Finder';
   }, []);
 
-  const allGames = useMemo(() => gamesRepository.getAll(), []);
   const allGenres = useMemo(() => gamesRepository.getAllGenres(), []);
   const allGameTypes = useMemo(() => gamesRepository.getAllGameTypes(), []);
   const allTags = useMemo(() => gamesRepository.getAllTags(), []);
 
-  // Compute filtered & sorted result
-  const { results, compatibilityMap } = useMemo(() => {
-    return filterAndSortGames(allGames, filters, specs);
-  }, [allGames, filters, specs]);
+  // Fetch games with debounce for search
+  useEffect(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-  // Compute active filter count (excluding default sortBy)
+    setLoading(true);
+
+    const timeout = setTimeout(
+      async () => {
+        try {
+          const orderingMap: Record<SortOption, string> = {
+            recommended: '-added',
+            'name-asc': 'name',
+            'name-desc': '-name',
+            'year-desc': '-released',
+            'year-asc': 'released',
+            'size-asc': '-added',
+            'size-desc': '-added',
+          };
+
+          const response = await gameProvider.getGames(
+            {
+              search: filters.searchQuery.trim() || undefined,
+              genres: filters.genres.length > 0 ? filters.genres[0].toLowerCase() : undefined,
+              ordering: orderingMap[filters.sortBy] || '-added',
+              page,
+              pageSize: 18,
+            },
+            controller.signal
+          );
+
+          setGames(response.games);
+          setTotalCount(response.totalCount);
+          setTotalPages(response.totalPages);
+          setIsLiveApi(response.isLive);
+          setApiStatusMessage(response.statusMessage);
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            console.warn('Browse fetch error, falling back to local catalog', err);
+          }
+        } finally {
+          setLoading(false);
+        }
+      },
+      filters.searchQuery ? 300 : 0
+    );
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [filters.searchQuery, filters.genres, filters.sortBy, page]);
+
+  // Client-side additional filtering (Compatibility, low-end, size, era, source)
+  const filteredGames = useMemo(() => {
+    return games.filter((game) => {
+      // Source filter
+      if (catalogSourceFilter === 'curated' && game.source !== 'curated') return false;
+      if (catalogSourceFilter === 'rawg' && game.source !== 'rawg') return false;
+
+      // Low end filter
+      if (filters.onlyLowEndFriendly && !game.isLowEndFriendly) return false;
+
+      // Game type filter
+      if (filters.gameTypes.length > 0) {
+        const hasType = filters.gameTypes.some((t) => game.gameType.includes(t));
+        if (!hasType) return false;
+      }
+
+      // Size filter
+      if (filters.size !== 'all') {
+        const size = game.estimatedSizeGB;
+        if (filters.size === 'under-1gb' && size >= 1.0) return false;
+        if (filters.size === 'under-3gb' && size >= 3.0) return false;
+        if (filters.size === 'under-5gb' && size >= 5.0) return false;
+        if (filters.size === '5gb-plus' && size < 5.0) return false;
+      }
+
+      // Year filter
+      if (filters.year !== 'all') {
+        const yr = game.releaseYear;
+        if (filters.year === '90s' && (yr < 1990 || yr > 1999)) return false;
+        if (filters.year === '2000s' && (yr < 2000 || yr > 2009)) return false;
+        if (filters.year === '2010s' && (yr < 2010 || yr > 2019)) return false;
+        if (filters.year === 'modern' && yr < 2020) return false;
+      }
+
+      // Tag filter
+      if (filters.selectedTag && !game.tags.includes(filters.selectedTag)) {
+        return false;
+      }
+
+      // Compatibility filter
+      if (filters.compatibility !== 'all' && specs) {
+        if (!game.requirementsAvailable) return false;
+        const res = checkCompatibility(specs, game);
+        if (res.verdict !== filters.compatibility) return false;
+      }
+
+      return true;
+    });
+  }, [games, catalogSourceFilter, filters, specs]);
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.searchQuery.trim()) count++;
@@ -58,11 +181,14 @@ export const Browse: React.FC = () => {
     if (filters.year !== 'all') count++;
     if (filters.selectedTag) count++;
     if (filters.onlyLowEndFriendly) count++;
+    if (catalogSourceFilter !== 'all') count++;
     return count;
-  }, [filters]);
+  }, [filters, catalogSourceFilter]);
 
   const resetFilters = () => {
     setFilters({ ...INITIAL_FILTERS });
+    setCatalogSourceFilter('all');
+    setPage(1);
     setSearchParams({});
   };
 
@@ -74,6 +200,7 @@ export const Browse: React.FC = () => {
         genres: exists ? prev.genres.filter((g) => g !== genre) : [...prev.genres, genre],
       };
     });
+    setPage(1);
   };
 
   const toggleGameType = (type: GameType) => {
@@ -91,12 +218,23 @@ export const Browse: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#243247]">
         <div>
-          <span className="text-xs font-mono uppercase tracking-wider text-[#10B981] font-semibold">
-            Catalog &amp; Discovery
-          </span>
-          <h1 className="text-3xl font-extrabold text-white mt-1">Explore Games</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#10B981] font-semibold">
+              Dynamic Discovery
+            </span>
+            {isLiveApi ? (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                RAWG API Connected
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                Curated Catalog Mode
+              </span>
+            )}
+          </div>
+          <h1 className="text-3xl font-extrabold text-white">Explore Games</h1>
           <p className="mt-1 text-sm text-[#94A3B8]">
-            Find games that match your hardware specifications and gameplay preferences.
+            Discover PC titles, check real hardware requirements, and view authentic game artwork.
           </p>
         </div>
 
@@ -104,7 +242,7 @@ export const Browse: React.FC = () => {
         <div className="text-xs">
           {isConfigured && specs ? (
             <div className="inline-flex items-center gap-2 p-2 rounded-lg bg-[#111D2D] border border-emerald-500/30 text-[#94A3B8]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
               <span>
                 Matching with: <strong className="text-white">{specs.ramGB}GB RAM · {specs.cpu.split(' ')[0]}</strong>
               </span>
@@ -118,7 +256,7 @@ export const Browse: React.FC = () => {
               className="inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg"
             >
               <AlertCircle className="w-3.5 h-3.5" />
-              <span>Configure PC specs to view compatibility badges</span>
+              <span>Configure PC specs to unlock compatibility ratings</span>
             </Link>
           )}
         </div>
@@ -131,14 +269,20 @@ export const Browse: React.FC = () => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
           <input
             type="text"
-            placeholder="Search by title, acronym (e.g. 'gta'), genre, developer..."
+            placeholder="Search by title, acronym (e.g. 'gta', 'hl2'), developer..."
             value={filters.searchQuery}
-            onChange={(e) => setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))}
+            onChange={(e) => {
+              setFilters((prev) => ({ ...prev, searchQuery: e.target.value }));
+              setPage(1);
+            }}
             className="w-full bg-[#111D2D] border border-[#243247] focus:border-[#10B981] rounded-lg pl-10 pr-10 py-2.5 text-sm text-white placeholder-[#94A3B8]/60 focus:outline-hidden transition-colors"
           />
           {filters.searchQuery && (
             <button
-              onClick={() => setFilters((prev) => ({ ...prev, searchQuery: '' }))}
+              onClick={() => {
+                setFilters((prev) => ({ ...prev, searchQuery: '' }));
+                setPage(1);
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#94A3B8] hover:text-white"
               aria-label="Clear search"
             >
@@ -153,17 +297,18 @@ export const Browse: React.FC = () => {
             <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
             <select
               value={filters.sortBy}
-              onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value as SortOption }))}
+              onChange={(e) => {
+                setFilters((prev) => ({ ...prev, sortBy: e.target.value as SortOption }));
+                setPage(1);
+              }}
               aria-label="Sort games"
               className="bg-[#111D2D] border border-[#243247] focus:border-[#10B981] rounded-lg pl-9 pr-8 py-2 text-xs font-medium text-white focus:outline-hidden appearance-none cursor-pointer"
             >
-              <option value="recommended">Sort: Recommended</option>
-              <option value="name-asc">Name (A–Z)</option>
-              <option value="name-desc">Name (Z–A)</option>
+              <option value="recommended">Sort: Popularity / Rating</option>
               <option value="year-desc">Release Year (Newest)</option>
               <option value="year-asc">Release Year (Oldest)</option>
-              <option value="size-asc">Size (Smallest)</option>
-              <option value="size-desc">Size (Largest)</option>
+              <option value="name-asc">Name (A–Z)</option>
+              <option value="name-desc">Name (Z–A)</option>
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#94A3B8] pointer-events-none" />
           </div>
@@ -185,7 +330,7 @@ export const Browse: React.FC = () => {
 
       {/* Main Content Area: Sidebar Filters + Game Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-        {/* Desktop / Collapsible Sidebar Filter Panel */}
+        {/* Filter Panel */}
         <div
           className={`space-y-6 bg-[#111D2D] border border-[#243247] rounded-xl p-5 ${
             isFilterDrawerOpen ? 'block' : 'hidden lg:block'
@@ -214,7 +359,30 @@ export const Browse: React.FC = () => {
             )}
           </div>
 
-          {/* 1. Low-End Friendly Switch */}
+          {/* 1. Catalog Source Filter */}
+          <div>
+            <label className="block text-xs font-mono uppercase text-[#94A3B8] mb-2 font-medium">
+              Catalog Source
+            </label>
+            <div className="grid grid-cols-3 gap-1 p-1 bg-[#080D18] rounded-lg border border-[#243247]">
+              {(['all', 'curated', 'rawg'] as const).map((src) => (
+                <button
+                  key={src}
+                  type="button"
+                  onClick={() => setCatalogSourceFilter(src)}
+                  className={`py-1.5 text-xs font-medium rounded-md capitalize transition-all ${
+                    catalogSourceFilter === src
+                      ? 'bg-[#172438] text-white shadow-xs font-semibold'
+                      : 'text-[#94A3B8] hover:text-white'
+                  }`}
+                >
+                  {src}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Low-End Friendly Switch */}
           <div className="p-3 rounded-lg bg-[#080D18] border border-[#243247]">
             <label className="flex items-center justify-between cursor-pointer">
               <span className="flex items-center gap-2 text-xs font-medium text-white">
@@ -229,11 +397,11 @@ export const Browse: React.FC = () => {
               />
             </label>
             <p className="text-[11px] text-[#94A3B8] mt-1">
-              Limits catalog to games requiring $\le 2$ GB RAM and basic graphics.
+              Limits catalog to games requiring $\le 4$ GB RAM and basic graphics.
             </p>
           </div>
 
-          {/* 2. Hardware Compatibility Filter */}
+          {/* 3. Hardware Compatibility Filter */}
           <div>
             <label className="block text-xs font-mono uppercase text-[#94A3B8] mb-2 font-medium">
               PC Compatibility
@@ -277,7 +445,7 @@ export const Browse: React.FC = () => {
             )}
           </div>
 
-          {/* 3. Genres Filter */}
+          {/* 4. Genres Filter */}
           <div>
             <label className="block text-xs font-mono uppercase text-[#94A3B8] mb-2 font-medium">
               Genres
@@ -303,10 +471,10 @@ export const Browse: React.FC = () => {
             </div>
           </div>
 
-          {/* 4. Game Types Filter */}
+          {/* 5. Game Types Filter */}
           <div>
             <label className="block text-xs font-mono uppercase text-[#94A3B8] mb-2 font-medium">
-              Game Mode / Type
+              Game Mode
             </label>
             <div className="flex flex-wrap gap-1.5">
               {allGameTypes.map((t) => {
@@ -329,25 +497,6 @@ export const Browse: React.FC = () => {
             </div>
           </div>
 
-          {/* 5. Size Filter */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[#94A3B8] mb-2 font-medium">
-              Install Size
-            </label>
-            <select
-              value={filters.size}
-              onChange={(e) => setFilters((prev) => ({ ...prev, size: e.target.value as SizeFilterOption }))}
-              aria-label="Filter by install size"
-              className="w-full bg-[#080D18] border border-[#243247] focus:border-[#10B981] rounded-lg px-3 py-2 text-xs text-white focus:outline-hidden"
-            >
-              <option value="all">Any Storage Size</option>
-              <option value="under-1gb">Under 1 GB (Ultra Compact)</option>
-              <option value="under-3gb">Under 3 GB</option>
-              <option value="under-5gb">Under 5 GB</option>
-              <option value="5gb-plus">5 GB or Larger</option>
-            </select>
-          </div>
-
           {/* 6. Release Year Filter */}
           <div>
             <label className="block text-xs font-mono uppercase text-[#94A3B8] mb-2 font-medium">
@@ -364,31 +513,6 @@ export const Browse: React.FC = () => {
               <option value="2000s">2000s Classics</option>
               <option value="2010s">2010s Indie Renaissance</option>
               <option value="modern">2020 and Newer</option>
-            </select>
-          </div>
-
-          {/* 7. Tags Filter */}
-          <div>
-            <label className="block text-xs font-mono uppercase text-[#94A3B8] mb-2 font-medium">
-              Specific Tag
-            </label>
-            <select
-              value={filters.selectedTag || ''}
-              onChange={(e) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  selectedTag: e.target.value || null,
-                }))
-              }
-              aria-label="Filter by specific tag"
-              className="w-full bg-[#080D18] border border-[#243247] focus:border-[#10B981] rounded-lg px-3 py-2 text-xs text-white focus:outline-hidden"
-            >
-              <option value="">Any Tag</option>
-              {allTags.map((tag) => (
-                <option key={tag} value={tag}>
-                  {tag}
-                </option>
-              ))}
             </select>
           </div>
         </div>
@@ -413,25 +537,12 @@ export const Browse: React.FC = () => {
                 </span>
               )}
 
-              {filters.onlyLowEndFriendly && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-500/10 border border-sky-500/30 text-sky-300">
-                  <span>Low-End Friendly</span>
+              {catalogSourceFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-300">
+                  <span>Source: {catalogSourceFilter.toUpperCase()}</span>
                   <button
-                    onClick={() => setFilters((prev) => ({ ...prev, onlyLowEndFriendly: false }))}
-                    aria-label="Remove low-end filter"
-                    className="hover:text-rose-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {filters.compatibility !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#111D2D] border border-[#243247] text-white capitalize">
-                  <span>Status: {filters.compatibility.replace('-', ' ')}</span>
-                  <button
-                    onClick={() => setFilters((prev) => ({ ...prev, compatibility: 'all' }))}
-                    aria-label="Remove compatibility filter"
+                    onClick={() => setCatalogSourceFilter('all')}
+                    aria-label="Remove source filter"
                     className="hover:text-rose-400"
                   >
                     <X className="w-3 h-3" />
@@ -455,61 +566,6 @@ export const Browse: React.FC = () => {
                 </span>
               ))}
 
-              {filters.gameTypes.map((t) => (
-                <span
-                  key={t}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#111D2D] border border-[#243247] text-white"
-                >
-                  <span>{t}</span>
-                  <button
-                    onClick={() => toggleGameType(t)}
-                    aria-label={`Remove game type ${t}`}
-                    className="hover:text-rose-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-
-              {filters.size !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#111D2D] border border-[#243247] text-white capitalize">
-                  <span>Size: {filters.size.replace('-', ' ')}</span>
-                  <button
-                    onClick={() => setFilters((prev) => ({ ...prev, size: 'all' }))}
-                    aria-label="Remove size filter"
-                    className="hover:text-rose-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {filters.year !== 'all' && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#111D2D] border border-[#243247] text-white capitalize">
-                  <span>Era: {filters.year}</span>
-                  <button
-                    onClick={() => setFilters((prev) => ({ ...prev, year: 'all' }))}
-                    aria-label="Remove era filter"
-                    className="hover:text-rose-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {filters.selectedTag && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#111D2D] border border-[#243247] text-white">
-                  <span>Tag: {filters.selectedTag}</span>
-                  <button
-                    onClick={() => setFilters((prev) => ({ ...prev, selectedTag: null }))}
-                    aria-label="Remove tag filter"
-                    className="hover:text-rose-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
               <button
                 type="button"
                 onClick={resetFilters}
@@ -520,34 +576,81 @@ export const Browse: React.FC = () => {
             </div>
           )}
 
-          {/* Result Count */}
+          {/* Result Count and Status */}
           <div className="flex items-center justify-between text-xs text-[#94A3B8]">
             <span className="font-mono">
-              Showing <strong className="text-white">{results.length}</strong> of{' '}
-              <strong className="text-white">{allGames.length}</strong> games
+              Showing <strong className="text-white">{filteredGames.length}</strong> of{' '}
+              <strong className="text-white">{totalCount}</strong> games (Page {page} of {totalPages})
             </span>
+            {apiStatusMessage && (
+              <span className="text-[11px] text-[#94A3B8]/80 hidden sm:inline">
+                {apiStatusMessage}
+              </span>
+            )}
           </div>
 
-          {/* Game Grid or Empty State */}
-          {results.length > 0 ? (
+          {/* Game Grid / Skeletons / Empty State */}
+          {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {results.map((game) => (
-                <GameCard
-                  key={game.id}
-                  game={game}
-                  compatibilityVerdict={compatibilityMap.get(game.id)}
-                />
+              {Array.from({ length: 6 }).map((_, i) => (
+                <GameCardSkeleton key={i} />
               ))}
             </div>
+          ) : filteredGames.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredGames.map((game) => {
+                  const verdict =
+                    specs && game.requirementsAvailable
+                      ? checkCompatibility(specs, game).verdict
+                      : undefined;
+                  return <GameCard key={game.id} game={game} compatibilityVerdict={verdict} />;
+                })}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 pt-6 border-t border-[#243247]">
+                  <button
+                    type="button"
+                    disabled={page <= 1}
+                    onClick={() => {
+                      setPage((p) => Math.max(1, p - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-[#111D2D] hover:bg-[#172438] disabled:opacity-40 disabled:pointer-events-none text-white border border-[#243247] transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Previous</span>
+                  </button>
+
+                  <span className="text-xs font-mono text-[#94A3B8]">
+                    Page <strong className="text-white">{page}</strong> of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={page >= totalPages}
+                    onClick={() => {
+                      setPage((p) => Math.min(totalPages, p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-[#111D2D] hover:bg-[#172438] disabled:opacity-40 disabled:pointer-events-none text-white border border-[#243247] transition-colors"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
-            /* Polished Empty State */
             <div className="p-12 text-center bg-[#111D2D] border border-[#243247] rounded-xl space-y-4">
               <div className="w-12 h-12 mx-auto rounded-full bg-[#080D18] flex items-center justify-center text-[#94A3B8]">
                 <Search className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-white">No matching games found</h3>
               <p className="text-xs text-[#94A3B8] max-w-sm mx-auto leading-relaxed">
-                We couldn&apos;t find any games matching your current search terms or filter constraints. Try loosening filters.
+                We couldn&apos;t find any games matching your current search terms or filter constraints.
               </p>
               <button
                 type="button"
